@@ -19,6 +19,7 @@ namespace SkyCast
         public MainWindow()
         {
             InitializeComponent();
+            MessageBox.Show("Welcome to SkyCast!");
         }
     }
 }
