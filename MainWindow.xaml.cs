@@ -19,5 +19,10 @@ namespace SkyCast
             InitializeComponent();
             
         }
+
+        private void InitializeComponent()
+        {
+            throw new NotImplementedException();
+        }
     }
 }
