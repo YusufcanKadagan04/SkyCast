@@ -8,4 +8,26 @@
     <UseWPF>true</UseWPF>
   </PropertyGroup>
 
+  <ItemGroup>
+    <None Remove="Images\cities.png" />
+    <None Remove="Images\RainyBG.png" />
+    <None Remove="Images\sun.png" />
+    <None Remove="Images\SunnyBackG.png" />
+    <None Remove="Images\user.png" />
+    <None Remove="Images\weather.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Images\cities.png" />
+    <Resource Include="Images\RainyBG.png" />
+    <Resource Include="Images\sun.png" />
+    <Resource Include="Images\SunnyBackG.png" />
+    <Resource Include="Images\user.png" />
+    <Resource Include="Images\weather.png" />
+  </ItemGroup>
+
 </Project>
