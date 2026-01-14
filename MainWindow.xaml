@@ -47,7 +47,19 @@
                         </Grid.RowDefinitions>
 
                         <Border Grid.Row="0" Background="#202b3b" CornerRadius="15" Height="50" Margin="0,0,0,20">
-                            <TextBlock Text="Search for cities..." Foreground="Gray" VerticalAlignment="Center" Margin="20,0,0,0"/>
+                            <TextBox x:Name="txtSearch"
+                            
+                             Tag="Search for cities..."
+                             Foreground="#c6c6c6"
+                             FontSize="14"
+                             FontWeight="Medium"
+                             FontFamily="Fonts/Poppins-Regular.ttf#Poppins"
+                             VerticalAlignment="Center"
+                             Margin="10 0 0 0"
+                             BorderThickness="0"
+                             Background="Transparent"
+                             CaretBrush="White"
+                             KeyDown="txtSearch_KeyDown"/>
                         </Border>
 
                         <Grid Grid.Row="1" Margin="0,20,0,0">
