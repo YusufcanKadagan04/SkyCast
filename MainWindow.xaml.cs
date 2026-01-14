@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
 using System.Windows;
+using System.Windows.Input;
 using System.Windows.Media.Imaging;
 using Newtonsoft.Json.Linq;
 
@@ -11,17 +12,30 @@ namespace SkyCast
     public partial class MainWindow : Window
     {
         private const string API_KEY = ApiConfig.API_KEY;
-        private const string CITY_URL = "https://api.openweathermap.org/data/2.5/forecast?q=Istanbul&units=metric&appid=";
+        private const string BASE_URL = "https://api.openweathermap.org/data/2.5/forecast?units=metric&appid=" + API_KEY + "&q=";
 
         public MainWindow()
         {
             InitializeComponent();
-            GetWeatherData();
+            GetWeatherData("Istanbul");
         }
 
-        private async void GetWeatherData()
+        private void txtSearch_KeyDown(object sender, KeyEventArgs e)
         {
-            string finalUrl = CITY_URL + API_KEY;
+            if (e.Key == Key.Enter)
+            {
+                string query = txtSearch.Text.Trim();
+                if (!string.IsNullOrEmpty(query))
+                {
+                    GetWeatherData(query);
+                    txtSearch.Text = "";
+                }
+            }
+        }
+
+        private async void GetWeatherData(string cityName)
+        {
+            string finalUrl = BASE_URL + cityName;
 
             try
             {
@@ -30,9 +44,9 @@ namespace SkyCast
                     string jsonResponse = await client.GetStringAsync(finalUrl);
                     var data = JObject.Parse(jsonResponse);
 
-                    string cityName = data["city"]["name"].ToString();
+                    string returnedCity = data["city"]["name"].ToString();
                     string countryCode = data["city"]["country"].ToString();
-                    txtCity.Text = $"{cityName}, {countryCode}";
+                    txtCity.Text = $"{returnedCity}, {countryCode}";
 
                     double rawTemp = (double)data["list"][0]["main"]["temp"];
                     txtTemperature.Text = $"{(int)rawTemp}°C";
@@ -44,6 +58,7 @@ namespace SkyCast
 
                     if (weatherCondition == "Clouds") iconPath = "/Images/cloudy.png";
                     else if (weatherCondition == "Rain") iconPath = "/Images/rain.png";
+                    else if (weatherCondition == "Snow") iconPath = "/Images/snow.png";
 
                     imgMainWeather.Source = new BitmapImage(new Uri(iconPath, UriKind.Relative));
 
@@ -53,7 +68,6 @@ namespace SkyCast
                     txtUVIndex.Text = "Low";
 
                     List<HourlyForecastModel> hourlyForecastList = new List<HourlyForecastModel>();
-
                     for (int i = 0; i < 8; i++)
                     {
                         var item = data["list"][i];
@@ -62,9 +76,9 @@ namespace SkyCast
 
                         string condition = item["weather"][0]["main"].ToString();
                         string hourlyIcon = "/Images/sun.png";
-
                         if (condition == "Rain") hourlyIcon = "/Images/rain.png";
                         else if (condition == "Clouds") hourlyIcon = "/Images/cloudy.png";
+                        else if (condition == "Snow") hourlyIcon = "/Images/snow.png";
 
                         hourlyForecastList.Add(new HourlyForecastModel
                         {
@@ -76,7 +90,6 @@ namespace SkyCast
                     listHourlyForecast.ItemsSource = hourlyForecastList;
 
                     List<DailyForecastModel> dailyForecastList = new List<DailyForecastModel>();
-
                     var dailyGroups = data["list"]
                         .GroupBy(x => x["dt_txt"].ToString().Substring(0, 10))
                         .Skip(1)
@@ -86,13 +99,13 @@ namespace SkyCast
                     {
                         var minTemp = group.Min(x => (double)x["main"]["temp_min"]);
                         var maxTemp = group.Max(x => (double)x["main"]["temp_max"]);
-
                         var middayData = group.ElementAt(group.Count() / 2);
                         string status = middayData["weather"][0]["main"].ToString();
 
                         string dayIcon = "/Images/sun.png";
                         if (status == "Rain") dayIcon = "/Images/rain.png";
                         else if (status == "Clouds") dayIcon = "/Images/cloudy.png";
+                        else if (status == "Snow") dayIcon = "/Images/snow.png";
 
                         DateTime dateValue = DateTime.Parse(group.Key);
                         string dayName = dateValue.ToString("ddd");
@@ -108,6 +121,10 @@ namespace SkyCast
                     }
                     listDaysForecast.ItemsSource = dailyForecastList;
                 }
+            }
+            catch (HttpRequestException)
+            {
+                MessageBox.Show("City not found! Please check the spelling.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
             catch (Exception ex)
             {
