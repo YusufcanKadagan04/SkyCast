@@ -20,6 +20,18 @@ namespace SkyCast
             GetWeatherData("Istanbul");
         }
 
+        private void BtnWeather_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            WeatherView.Visibility = Visibility.Visible;
+            CitiesView.Visibility = Visibility.Collapsed;
+        }
+
+        private void BtnCities_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            WeatherView.Visibility = Visibility.Collapsed;
+            CitiesView.Visibility = Visibility.Visible;
+        }
+
         private void txtSearch_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.Key == Key.Enter)
@@ -44,116 +56,104 @@ namespace SkyCast
                     string jsonResponse = await client.GetStringAsync(finalUrl);
                     var data = JObject.Parse(jsonResponse);
 
-                    string returnedCity = data["city"]["name"].ToString();
-                    string countryCode = data["city"]["country"].ToString();
-                    txtCity.Text = $"{returnedCity}, {countryCode}";
-
-                    double rawTemp = (double)data["list"][0]["main"]["temp"];
-                    txtTemperature.Text = $"{(int)rawTemp}°C";
-
+                    
+                    txtCity.Text = $"{data["city"]["name"]}, {data["city"]["country"]}";
                     txtDate.Text = DateTime.Now.ToString("dd MMMM yyyy dddd");
 
-                    string weatherCondition = data["list"][0]["weather"][0]["main"].ToString();
-                    string iconPath = "/Images/sun.png";
+                    
+                    var firstItem = data["list"][0];
+                    double rawTemp = Convert.ToDouble(firstItem["main"]["temp"]);
+                    txtTemperature.Text = $"{(int)rawTemp}°C";
 
-                    if (weatherCondition == "Clouds") iconPath = "/Images/cloudy.png";
-                    else if (weatherCondition == "Rain") iconPath = "/Images/rain.png";
-                    else if (weatherCondition == "Snow") iconPath = "/Images/snow.png";
+                    string weatherCondition = firstItem["weather"][0]["main"].ToString();
+                    string iconCode = firstItem["weather"][0]["icon"].ToString();
+                    SetDynamicBackground(weatherCondition, iconCode);
 
-                    imgMainWeather.Source = new BitmapImage(new Uri(iconPath, UriKind.Relative));
-
-                    txtHumidity.Text = $"{data["list"][0]["main"]["humidity"]}%";
-                    txtWindSpeed.Text = $"{data["list"][0]["wind"]["speed"]} km/h";
-                    txtRealFeel.Text = $"{(int)(double)data["list"][0]["main"]["feels_like"]}°";
+                    
+                    txtHumidity.Text = $"{firstItem["main"]["humidity"]}%";
+                    txtWindSpeed.Text = $"{firstItem["wind"]["speed"]} km/h";
+                    txtRealFeel.Text = $"{(int)Convert.ToDouble(firstItem["main"]["feels_like"])}°";
                     txtUVIndex.Text = "Low";
 
-                    List<HourlyForecastModel> hourlyForecastList = new List<HourlyForecastModel>();
+                    
+                    string iconPath = GetIconPath(weatherCondition);
+                    imgMainWeather.Source = new BitmapImage(new Uri(iconPath, UriKind.Relative));
+
+                    
+                    var hourlyList = new List<HourlyForecastModel>();
                     for (int i = 0; i < 8; i++)
                     {
                         var item = data["list"][i];
-                        string dateTimeStr = item["dt_txt"].ToString();
-                        string timeOnly = dateTimeStr.Split(' ')[1].Substring(0, 5);
-
-                        string condition = item["weather"][0]["main"].ToString();
-                        string hourlyIcon = "/Images/sun.png";
-                        if (condition == "Rain") hourlyIcon = "/Images/rain.png";
-                        else if (condition == "Clouds") hourlyIcon = "/Images/cloudy.png";
-                        else if (condition == "Snow") hourlyIcon = "/Images/snow.png";
-
-                        hourlyForecastList.Add(new HourlyForecastModel
+                        hourlyList.Add(new HourlyForecastModel
                         {
-                            Time = timeOnly,
-                            Temperature = $"{(int)(double)item["main"]["temp"]}°",
-                            Icon = hourlyIcon
+                            Time = item["dt_txt"].ToString().Split(' ')[1].Substring(0, 5),
+                            Temperature = $"{(int)Convert.ToDouble(item["main"]["temp"])}°",
+                            Icon = GetIconPath(item["weather"][0]["main"].ToString())
                         });
                     }
-                    listHourlyForecast.ItemsSource = hourlyForecastList;
+                    listHourlyForecast.ItemsSource = hourlyList;
 
-                    List<DailyForecastModel> dailyForecastList = new List<DailyForecastModel>();
-                    var dailyGroups = data["list"]
+                    
+                    var dailyList = new List<DailyForecastModel>();
+                    var groups = data["list"]
                         .GroupBy(x => x["dt_txt"].ToString().Substring(0, 10))
                         .Skip(1)
                         .Take(7);
 
-                    foreach (var group in dailyGroups)
+                    foreach (var group in groups)
                     {
-                        var minTemp = group.Min(x => (double)x["main"]["temp_min"]);
-                        var maxTemp = group.Max(x => (double)x["main"]["temp_max"]);
-                        var middayData = group.ElementAt(group.Count() / 2);
-                        string status = middayData["weather"][0]["main"].ToString();
-
-                        string dayIcon = "/Images/sun.png";
-                        if (status == "Rain") dayIcon = "/Images/rain.png";
-                        else if (status == "Clouds") dayIcon = "/Images/cloudy.png";
-                        else if (status == "Snow") dayIcon = "/Images/snow.png";
-
-                        DateTime dateValue = DateTime.Parse(group.Key);
-                        string dayName = dateValue.ToString("ddd");
-
-                        dailyForecastList.Add(new DailyForecastModel
+                        var midday = group.ElementAt(group.Count() / 2);
+                        dailyList.Add(new DailyForecastModel
                         {
-                            Day = dayName,
-                            MinTemp = $"{(int)minTemp}°",
-                            MaxTemp = $"{(int)maxTemp}°",
-                            IconPath = dayIcon,
-                            Status = status
+                            Day = DateTime.Parse(group.Key).ToString("ddd"),
+                            Status = midday["weather"][0]["main"].ToString(),
+                            IconPath = GetIconPath(midday["weather"][0]["main"].ToString()),
+                            MaxTemp = $"{(int)group.Max(x => Convert.ToDouble(x["main"]["temp_max"]))}°",
+                            MinTemp = $"{(int)group.Min(x => Convert.ToDouble(x["main"]["temp_min"]))}°"
                         });
                     }
-                    listDaysForecast.ItemsSource = dailyForecastList;
+                    listDaysForecast.ItemsSource = dailyList;
                 }
-            }
-            catch (HttpRequestException)
-            {
-                MessageBox.Show("City not found! Please check the spelling.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Error: " + ex.Message);
+                MessageBox.Show("Veri yüklenirken hata oluştu: " + ex.Message);
             }
         }
 
-        private void BtnWeather_MouseDown(object sender, MouseButtonEventArgs e)
+        private string GetIconPath(string condition)
         {
-            
-            WeatherView.Visibility = Visibility.Visible;
-
-            CitiesView.Visibility = Visibility.Collapsed;
-        }
-        private void BtnCities_MouseDown(object sender, MouseButtonEventArgs e)
-        {
-            
-            WeatherView.Visibility = Visibility.Collapsed;
-
-            CitiesView.Visibility = Visibility.Visible;
+            if (condition == "Clouds" || condition == "Mist" || condition == "Fog") return "/Images/cloudy.png";
+            if (condition == "Rain" || condition == "Drizzle" || condition == "Thunderstorm") return "/Images/rain.png";
+            if (condition == "Snow") return "/Images/snow.png";
+            return "/Images/sun.png";
         }
 
+        private void SetDynamicBackground(string weatherCondition, string iconCode)
+        {
+            try
+            {
+                string imgName = "sunny.jpg";
+                if (iconCode.Contains("n")) imgName = "night.jpg";
+                else
+                {
+                    switch (weatherCondition)
+                    {
+                        case "Clouds": case "Mist": case "Fog": imgName = "cloudy.jpg"; break;
+                        case "Rain": case "Drizzle": case "Thunderstorm": imgName = "rainy.jpg"; break;
+                        case "Snow": imgName = "snowy.jpg"; break;
+                    }
+                }
 
-
+                string packUri = $"pack://application:,,,/Images/{imgName}";
+                bgImage.ImageSource = new BitmapImage(new Uri(packUri));
+            }
+            catch (Exception)
+            {
+                
+            }
+        }
     }
-
-    
-
-
 
     public class HourlyForecastModel
     {
