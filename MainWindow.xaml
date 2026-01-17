@@ -21,12 +21,20 @@
                         </Grid.RowDefinitions>
 
                         <StackPanel Grid.Row="0" Margin="0,50,0,0">
-                            <StackPanel Margin="0,0,0,40" Cursor="Hand">
+
+                            <StackPanel x:Name="btnWeather" 
+                                        MouseLeftButtonDown="BtnWeather_MouseDown"
+                                        Margin="0,0,0,40" 
+                                        Cursor="Hand" 
+                                        Background="Transparent">
                                 <Image Source="/Images/weather.png" Width="25" HorizontalAlignment="Center" RenderOptions.BitmapScalingMode="HighQuality"/>
                                 <TextBlock Text="Weather" FontSize="12" Foreground="White" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,8,0,0"/>
                             </StackPanel>
 
-                            <StackPanel Cursor="Hand">
+                            <StackPanel x:Name="btnCities" 
+                                        MouseLeftButtonDown="BtnCities_MouseDown"
+                                        Cursor="Hand" 
+                                        Background="Transparent">
                                 <Image Source="/Images/cities.png" Width="25" HorizontalAlignment="Center" RenderOptions.BitmapScalingMode="HighQuality"/>
                                 <TextBlock Text="Cities" FontSize="12" Foreground="#808080" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,8,0,0"/>
                             </StackPanel>
@@ -48,18 +56,17 @@
 
                         <Border Grid.Row="0" Background="#202b3b" CornerRadius="15" Height="50" Margin="0,0,0,20">
                             <TextBox x:Name="txtSearch"
-                            
-                             Tag="Search for cities..."
-                             Foreground="#c6c6c6"
-                             FontSize="14"
-                             FontWeight="Medium"
-                             FontFamily="Fonts/Poppins-Regular.ttf#Poppins"
-                             VerticalAlignment="Center"
-                             Margin="10 0 0 0"
-                             BorderThickness="0"
-                             Background="Transparent"
-                             CaretBrush="White"
-                             KeyDown="txtSearch_KeyDown"/>
+                                     Tag="Search for cities..."
+                                     Foreground="#c6c6c6"
+                                     FontSize="14"
+                                     FontWeight="Medium"
+                                     FontFamily="Fonts/Poppins-Regular.ttf#Poppins"
+                                     VerticalAlignment="Center"
+                                     Margin="10 0 0 0"
+                                     BorderThickness="0"
+                                     Background="Transparent"
+                                     CaretBrush="White"
+                                     KeyDown="txtSearch_KeyDown"/>
                         </Border>
 
                         <Grid Grid.Row="1" Margin="0,20,0,0">
@@ -204,7 +211,6 @@
                                     </ItemsControl>
                                 </Grid>
                             </Border>
-
                         </Grid>
                     </Grid>
 
