@@ -10,8 +10,13 @@
 
   <ItemGroup>
     <None Remove="Images\cities.png" />
+    <None Remove="Images\cloudy.jpg" />
+    <None Remove="Images\night.jpg" />
+    <None Remove="Images\rainy.jpg" />
     <None Remove="Images\RainyBG.png" />
+    <None Remove="Images\snowy.jpg" />
     <None Remove="Images\sun.png" />
+    <None Remove="Images\sunny.jpg" />
     <None Remove="Images\SunnyBackG.png" />
     <None Remove="Images\user.png" />
     <None Remove="Images\weather.png" />
@@ -23,8 +28,23 @@
 
   <ItemGroup>
     <Resource Include="Images\cities.png" />
+    <Resource Include="Images\cloudy.jpg">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Resource>
+    <Resource Include="Images\night.jpg">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Resource>
+    <Resource Include="Images\rainy.jpg">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Resource>
     <Resource Include="Images\RainyBG.png" />
+    <Resource Include="Images\snowy.jpg">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Resource>
     <Resource Include="Images\sun.png" />
+    <Resource Include="Images\sunny.jpg">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Resource>
     <Resource Include="Images\SunnyBackG.png" />
     <Resource Include="Images\user.png" />
     <Resource Include="Images\weather.png" />
