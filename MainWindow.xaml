@@ -60,18 +60,32 @@
                         </Grid.RowDefinitions>
 
                         <Border Grid.Row="0" Background="#202b3b" CornerRadius="15" Height="50" Margin="0,0,0,20">
-                            <TextBox x:Name="txtSearch"
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <TextBox x:Name="txtSearch"
+                                     Grid.Column="0"
                                      Tag="Search for cities..."
                                      Foreground="#c6c6c6"
                                      FontSize="14"
                                      FontWeight="Medium"
-                                     FontFamily="Fonts/Poppins-Regular.ttf#Poppins"
                                      VerticalAlignment="Center"
                                      Margin="10 0 0 0"
                                      BorderThickness="0"
                                      Background="Transparent"
                                      CaretBrush="White"
                                      KeyDown="txtSearch_KeyDown"/>
+
+                                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,15,0">
+                                    <Button Click="btnRefresh_Click" Background="Transparent" BorderThickness="0" Cursor="Hand" Margin="0,0,15,0">
+                                        <TextBlock Text="🔄" Foreground="White" FontSize="18"/>
+                                    </Button>
+                                    <CheckBox x:Name="unitToggle" Click="UnitToggle_Click" Foreground="White" Content="°F" VerticalAlignment="Center" Cursor="Hand"/>
+                                </StackPanel>
+                            </Grid>
                         </Border>
 
                         <Grid Grid.Row="1" Margin="0,20,0,0">
@@ -162,7 +176,7 @@
                                                 <TextBlock x:Name="txtWindSpeed" Text="-" Foreground="White" FontSize="20" FontWeight="Bold" Margin="20,0,0,20"/>
                                             </StackPanel>
                                             <StackPanel Grid.Row="1" Grid.Column="0" VerticalAlignment="Center">
-                                                <TextBlock Text="💧 Chance of rain" Foreground="#808080" FontSize="14" Margin="0,10,0,5"/>
+                                                <TextBlock Text="💧 Humidity" Foreground="#808080" FontSize="14" Margin="0,10,0,5"/>
                                                 <TextBlock x:Name="txtHumidity" Text="-" Foreground="White" FontSize="20" FontWeight="Bold" Margin="20,0,0,20"/>
                                             </StackPanel>
                                             <StackPanel Grid.Row="1" Grid.Column="1" VerticalAlignment="Center">
@@ -180,10 +194,10 @@
                                         <RowDefinition Height="Auto"/>
                                         <RowDefinition Height="*"/>
                                     </Grid.RowDefinitions>
-                                    <Grid Grid.Row="0" Margin="0,0,0,20">
-                                        <TextBlock Text="7-DAY FORECAST" Foreground="#808080" FontSize="12" FontWeight="Bold" Margin="20,20,0,0"/>
+                                    <Grid Grid.Row="0" Margin="20,20,0,20">
+                                        <TextBlock Text="7-DAY FORECAST" Foreground="#808080" FontSize="12" FontWeight="Bold"/>
                                     </Grid>
-                                    <ItemsControl x:Name="listDaysForecast">
+                                    <ItemsControl Grid.Row="1" x:Name="listDaysForecast">
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate>
                                                 <Grid Margin="0,0,0,30">

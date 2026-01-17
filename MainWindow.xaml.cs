@@ -12,12 +12,13 @@ namespace SkyCast
     public partial class MainWindow : Window
     {
         private const string API_KEY = ApiConfig.API_KEY;
-        private const string BASE_URL = "https://api.openweathermap.org/data/2.5/forecast?units=metric&appid=" + API_KEY + "&q=";
+        private string _lastCity = "Istanbul";
+        private bool _isMetric = true;
 
         public MainWindow()
         {
             InitializeComponent();
-            GetWeatherData("Istanbul");
+            GetWeatherData(_lastCity);
         }
 
         private void BtnWeather_MouseDown(object sender, MouseButtonEventArgs e)
@@ -45,9 +46,22 @@ namespace SkyCast
             }
         }
 
+        private void btnRefresh_Click(object sender, RoutedEventArgs e)
+        {
+            GetWeatherData(_lastCity);
+        }
+
+        private void UnitToggle_Click(object sender, RoutedEventArgs e)
+        {
+            _isMetric = !(unitToggle.IsChecked ?? false);
+            GetWeatherData(_lastCity);
+        }
+
         private async void GetWeatherData(string cityName)
         {
-            string finalUrl = BASE_URL + cityName;
+            _lastCity = cityName;
+            string units = _isMetric ? "metric" : "imperial";
+            string finalUrl = $"https://api.openweathermap.org/data/2.5/forecast?units={units}&appid={API_KEY}&q={cityName}";
 
             try
             {
@@ -56,30 +70,28 @@ namespace SkyCast
                     string jsonResponse = await client.GetStringAsync(finalUrl);
                     var data = JObject.Parse(jsonResponse);
 
-                    
+                    string tempUnit = _isMetric ? "°C" : "°F";
+                    string speedUnit = _isMetric ? "km/h" : "mph";
+
                     txtCity.Text = $"{data["city"]["name"]}, {data["city"]["country"]}";
                     txtDate.Text = DateTime.Now.ToString("dd MMMM yyyy dddd");
 
-                    
                     var firstItem = data["list"][0];
                     double rawTemp = Convert.ToDouble(firstItem["main"]["temp"]);
-                    txtTemperature.Text = $"{(int)rawTemp}°C";
+                    txtTemperature.Text = $"{(int)rawTemp}{tempUnit}";
 
                     string weatherCondition = firstItem["weather"][0]["main"].ToString();
                     string iconCode = firstItem["weather"][0]["icon"].ToString();
                     SetDynamicBackground(weatherCondition, iconCode);
 
-                    
                     txtHumidity.Text = $"{firstItem["main"]["humidity"]}%";
-                    txtWindSpeed.Text = $"{firstItem["wind"]["speed"]} km/h";
+                    txtWindSpeed.Text = $"{firstItem["wind"]["speed"]} {speedUnit}";
                     txtRealFeel.Text = $"{(int)Convert.ToDouble(firstItem["main"]["feels_like"])}°";
                     txtUVIndex.Text = "Low";
 
-                    
                     string iconPath = GetIconPath(weatherCondition);
                     imgMainWeather.Source = new BitmapImage(new Uri(iconPath, UriKind.Relative));
 
-                    
                     var hourlyList = new List<HourlyForecastModel>();
                     for (int i = 0; i < 8; i++)
                     {
@@ -93,7 +105,6 @@ namespace SkyCast
                     }
                     listHourlyForecast.ItemsSource = hourlyList;
 
-                    
                     var dailyList = new List<DailyForecastModel>();
                     var groups = data["list"]
                         .GroupBy(x => x["dt_txt"].ToString().Substring(0, 10))
@@ -148,10 +159,7 @@ namespace SkyCast
                 string packUri = $"pack://application:,,,/Images/{imgName}";
                 bgImage.ImageSource = new BitmapImage(new Uri(packUri));
             }
-            catch (Exception)
-            {
-                
-            }
+            catch (Exception) { }
         }
     }
 
