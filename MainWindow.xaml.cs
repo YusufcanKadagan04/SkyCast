@@ -131,7 +131,29 @@ namespace SkyCast
                 MessageBox.Show("Error: " + ex.Message);
             }
         }
+
+        private void BtnWeather_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            
+            WeatherView.Visibility = Visibility.Visible;
+
+            CitiesView.Visibility = Visibility.Collapsed;
+        }
+        private void BtnCities_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            
+            WeatherView.Visibility = Visibility.Collapsed;
+
+            CitiesView.Visibility = Visibility.Visible;
+        }
+
+
+
     }
+
+    
+
+
 
     public class HourlyForecastModel
     {
