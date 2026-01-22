@@ -5,35 +5,75 @@ using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Controls; 
+using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media.Imaging;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Microsoft.Toolkit.Uwp.Notifications;
+// Grafik Kütüphaneleri
+using LiveCharts;
+using LiveCharts.Wpf;
+using System.ComponentModel;
 
 namespace SkyCast
 {
-    public partial class MainWindow : Window
+    // INotifyPropertyChanged ekledik ki grafik güncellensin
+    public partial class MainWindow : Window, INotifyPropertyChanged
     {
         private const string API_KEY = ApiConfig.API_KEY;
         private string _lastCity = "Istanbul";
         private bool _isMetric = true;
         private List<string> _favorites = new List<string>();
-        private string _favFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "favorites.json");
-        private bool _isFirstLoad = true; 
+
+        // AppData klasörüne güvenli kayıt
+        private string _favFile = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "SkyCast_Favorites.json");
+
+        private bool _isFirstLoad = true;
+
+        // --- GRAFİK İÇİN GEREKLİ PROPERTİLER ---
+        private SeriesCollection _hourlySeries;
+        public SeriesCollection HourlySeries
+        {
+            get { return _hourlySeries; }
+            set
+            {
+                _hourlySeries = value;
+                OnPropertyChanged("HourlySeries");
+            }
+        }
+
+        private string[] _hourlyLabels;
+        public string[] HourlyLabels
+        {
+            get { return _hourlyLabels; }
+            set
+            {
+                _hourlyLabels = value;
+                OnPropertyChanged("HourlyLabels");
+            }
+        }
+
+        public event PropertyChangedEventHandler PropertyChanged;
+        protected void OnPropertyChanged(string name)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+        }
+        // ---------------------------------------
 
         public MainWindow()
         {
             InitializeComponent();
+
+            // Binding için DataContext'i kendisi yapıyoruz
+            DataContext = this;
+
             LoadFavorites();
             GetWeatherData(_lastCity);
         }
 
-        
         private void ShowWeatherAlert(string title, string message)
         {
-            
             new ToastContentBuilder()
                 .AddText(title)
                 .AddText(message)
@@ -102,12 +142,6 @@ namespace SkyCast
                             Status = condition,
                             BackgroundPath = bg
                         });
-
-                        
-                        if (condition.Contains("Rain") || condition.Contains("Snow") || condition.Contains("Thunderstorm"))
-                        {
-                            ShowWeatherAlert("⚠️ Hava Uyarısı", $"{city} şu an {condition} ({temp}). Dikkatli olun!");
-                        }
                     }
                     catch { }
                 }
@@ -142,8 +176,7 @@ namespace SkyCast
         private void btnRefresh_Click(object sender, RoutedEventArgs e)
         {
             GetWeatherData(_lastCity);
-            
-            ShowWeatherAlert("Güncellendi", $"{_lastCity} için veriler yenilendi.");
+            ShowWeatherAlert("Güncellendi", $"{_lastCity} verileri yenilendi.");
         }
 
         private void UnitToggle_Click(object sender, RoutedEventArgs e)
@@ -164,8 +197,7 @@ namespace SkyCast
             {
                 _favorites.Add(cleanCityName);
                 txtStar.Text = "★";
-                
-                ShowWeatherAlert("Favorilere Eklendi", $"{cleanCityName} takip listenize alındı.");
+                ShowWeatherAlert("Eklendi", $"{cleanCityName} favorilere alındı.");
             }
             SaveFavorites();
         }
@@ -220,18 +252,36 @@ namespace SkyCast
 
                     imgMainWeather.Source = new BitmapImage(new Uri(GetIconPath(weatherCondition), UriKind.Relative));
 
-                    var hourlyList = new List<HourlyForecastModel>();
+                    // --- YENİ GRAFİK VERİSİ HAZIRLAMA ---
+                    var tempValues = new ChartValues<double>();
+                    var timeLabels = new List<string>();
+
                     for (int i = 0; i < 8; i++)
                     {
                         var item = data["list"][i];
-                        hourlyList.Add(new HourlyForecastModel
-                        {
-                            Time = item["dt_txt"].ToString().Split(' ')[1].Substring(0, 5),
-                            Temperature = $"{(int)Convert.ToDouble(item["main"]["temp"])}°",
-                            Icon = GetIconPath(item["weather"][0]["main"].ToString())
-                        });
+                        double t = Convert.ToDouble(item["main"]["temp"]);
+                        tempValues.Add(t);
+
+                        string time = item["dt_txt"].ToString().Split(' ')[1].Substring(0, 5);
+                        timeLabels.Add(time);
                     }
-                    listHourlyForecast.ItemsSource = hourlyList;
+
+                    // Grafiği Oluştur
+                    HourlySeries = new SeriesCollection
+                    {
+                        new LineSeries
+                        {
+                            Title = "Temp",
+                            Values = tempValues,
+                            PointGeometry = DefaultGeometries.Circle,
+                            PointGeometrySize = 10,
+                            StrokeThickness = 3,
+                            Stroke = System.Windows.Media.Brushes.White,
+                            Fill = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(50, 255, 255, 255))
+                        }
+                    };
+                    HourlyLabels = timeLabels.ToArray();
+                    // -------------------------------------
 
                     var dailyList = new List<DailyForecastModel>();
                     var groups = data["list"]
@@ -253,10 +303,9 @@ namespace SkyCast
                     }
                     listDaysForecast.ItemsSource = dailyList;
 
-                    
                     if (_isFirstLoad)
                     {
-                        ShowWeatherAlert("Günlük Özet", $"{nameOnly}: Bugün hava {weatherCondition}, sıcaklık {currentTemp}.");
+                        ShowWeatherAlert("Günlük Özet", $"{nameOnly}: Bugün hava {weatherCondition}, {currentTemp}.");
                         _isFirstLoad = false;
                     }
                 }
@@ -299,13 +348,6 @@ namespace SkyCast
         public string Temperature { get; set; }
         public string Status { get; set; }
         public string BackgroundPath { get; set; }
-    }
-
-    public class HourlyForecastModel
-    {
-        public string Time { get; set; }
-        public string Temperature { get; set; }
-        public string Icon { get; set; }
     }
 
     public class DailyForecastModel

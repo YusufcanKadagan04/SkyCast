@@ -1,6 +1,7 @@
 ﻿<Window x:Class="SkyCast.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:lvc="clr-namespace:LiveCharts.Wpf;assembly=LiveCharts.Wpf"
         Title="Hava Durumu" Height="650" Width="1000"
         Background="Transparent"
         WindowStartupLocation="CenterScreen" WindowStyle="None" AllowsTransparency="True">
@@ -127,23 +128,25 @@
                                             <RowDefinition Height="Auto"/>
                                             <RowDefinition Height="*"/>
                                         </Grid.RowDefinitions>
-                                        <TextBlock Grid.Row="0" Text="TODAY'S FORECAST" Foreground="#808080" FontSize="12" FontWeight="Bold" Margin="0,0,0,15"/>
-                                        <ItemsControl Grid.Row="1" x:Name="listHourlyForecast">
-                                            <ItemsControl.ItemsPanel>
-                                                <ItemsPanelTemplate>
-                                                    <StackPanel Orientation="Horizontal"/>
-                                                </ItemsPanelTemplate>
-                                            </ItemsControl.ItemsPanel>
-                                            <ItemsControl.ItemTemplate>
-                                                <DataTemplate>
-                                                    <StackPanel Margin="10,0,10,0" Width="60">
-                                                        <TextBlock Text="{Binding Time}" Foreground="White" FontSize="12" HorizontalAlignment="Center"/>
-                                                        <Image Source="{Binding Icon}" Width="30" Height="30" HorizontalAlignment="Center" Margin="0,5,0,5"/>
-                                                        <TextBlock Text="{Binding Temperature}" Foreground="White" FontSize="12" HorizontalAlignment="Center"/>
-                                                    </StackPanel>
-                                                </DataTemplate>
-                                            </ItemsControl.ItemTemplate>
-                                        </ItemsControl>
+                                        <TextBlock Grid.Row="0" Text="24H TEMPERATURE TREND" Foreground="#808080" FontSize="12" FontWeight="Bold" Margin="0,0,0,5"/>
+
+                                        <lvc:CartesianChart Grid.Row="1" 
+                                                            Series="{Binding HourlySeries}" 
+                                                            LegendLocation="None" 
+                                                            Hoverable="True" 
+                                                            Margin="0,10,0,0">
+                                            <lvc:CartesianChart.AxisX>
+                                                <lvc:Axis Labels="{Binding HourlyLabels}" Foreground="Gray" FontSize="10">
+                                                    <lvc:Axis.Separator>
+                                                        <lvc:Separator Step="1" StrokeThickness="0"/>
+                                                    </lvc:Axis.Separator>
+                                                </lvc:Axis>
+                                            </lvc:CartesianChart.AxisX>
+                                            <lvc:CartesianChart.AxisY>
+                                                <lvc:Axis Visibility="Collapsed"/>
+                                            </lvc:CartesianChart.AxisY>
+                                        </lvc:CartesianChart>
+
                                     </Grid>
                                 </Border>
 
