@@ -108,7 +108,12 @@
                                             <ColumnDefinition Width="*" />
                                         </Grid.ColumnDefinitions>
                                         <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="20,0,0,0">
-                                            <TextBlock x:Name="txtCity" Text="İstanbul, Türkiye" FontSize="26" Foreground="White" FontWeight="Bold"/>
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock x:Name="txtCity" Text="İstanbul, Türkiye" FontSize="26" Foreground="White" FontWeight="Bold"/>
+                                                <Button Click="btnFavorite_Click" Background="Transparent" BorderThickness="0" Margin="10,0,0,0" Cursor="Hand">
+                                                    <TextBlock x:Name="txtStar" Text="☆" FontSize="24" Foreground="Gold"/>
+                                                </Button>
+                                            </StackPanel>
                                             <TextBlock x:Name="txtDate" Text="Tarih Bekleniyor..." FontSize="13" Foreground="LightGray" Margin="0,5,0,20"/>
                                             <TextBlock x:Name="txtTemperature" Text="0°C" FontSize="50" Foreground="White" FontWeight="Bold"/>
                                         </StackPanel>
@@ -250,27 +255,41 @@
                                         <SolidColorBrush Color="#151e2b"/>
                                     </Border.Background>
                                     <ScrollViewer VerticalScrollBarVisibility="Hidden" HorizontalScrollBarVisibility="Disabled">
-                                        <WrapPanel Orientation="Horizontal" Margin="10">
-                                            <Border Width="230" Height="110" CornerRadius="20" Margin="10,20,20,20">
-                                                <Border.Background>
-                                                    <ImageBrush ImageSource="/Images/SunnyBackG.png" Stretch="UniformToFill"/>
-                                                </Border.Background>
-                                                <Grid>
-                                                    <Border Background="Black" CornerRadius="20" Opacity="0.4"/>
-                                                    <Grid>
-                                                        <Grid.ColumnDefinitions>
-                                                            <ColumnDefinition Width="*"/>
-                                                            <ColumnDefinition Width="Auto"/>
-                                                        </Grid.ColumnDefinitions>
-                                                        <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="15,0,0,0">
-                                                            <TextBlock Text="Istanbul, TR" Foreground="White" FontSize="18" FontWeight="Bold"/>
-                                                            <TextBlock Text="Sunny" Foreground="White" FontSize="13" FontWeight="SemiBold" Margin="0,5,0,0"/>
-                                                        </StackPanel>
-                                                        <TextBlock Grid.Column="1" Text="25°" Foreground="White" FontSize="32" FontWeight="Bold" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,15,0"/>
-                                                    </Grid>
-                                                </Grid>
-                                            </Border>
-                                        </WrapPanel>
+                                        <ItemsControl x:Name="listFavorites">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate>
+                                                    <WrapPanel Orientation="Horizontal" Margin="10"/>
+                                                </ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Border Width="230" Height="110" CornerRadius="20" Margin="10">
+                                                        <Border.Background>
+                                                            <ImageBrush ImageSource="{Binding BackgroundPath}" Stretch="UniformToFill"/>
+                                                        </Border.Background>
+                                                        <Grid>
+                                                            <Border Background="Black" CornerRadius="20" Opacity="0.4"/>
+                                                            <Grid>
+                                                                <Grid.ColumnDefinitions>
+                                                                    <ColumnDefinition Width="*"/>
+                                                                    <ColumnDefinition Width="Auto"/>
+                                                                </Grid.ColumnDefinitions>
+                                                                <StackPanel VerticalAlignment="Center" Margin="15,0,0,0">
+                                                                    <TextBlock Text="{Binding CityName}" Foreground="White" FontSize="18" FontWeight="Bold"/>
+                                                                    <TextBlock Text="{Binding Status}" Foreground="White" FontSize="13" FontWeight="SemiBold" Margin="0,5,0,0"/>
+                                                                </StackPanel>
+                                                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,15,0">
+                                                                    <TextBlock Text="{Binding Temperature}" Foreground="White" FontSize="32" FontWeight="Bold" HorizontalAlignment="Right"/>
+                                                                    <Button Click="btnRemoveFavorite_Click" Tag="{Binding CityName}" Background="Transparent" BorderThickness="0" Cursor="Hand" HorizontalAlignment="Right">
+                                                                        <TextBlock Text="🗑️" FontSize="12"/>
+                                                                    </Button>
+                                                                </StackPanel>
+                                                            </Grid>
+                                                        </Grid>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
                                     </ScrollViewer>
                                 </Border>
                             </Grid>
