@@ -1,15 +1,16 @@
-﻿using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Controls;
+using System.Windows.Controls; 
 using System.Windows.Input;
 using System.Windows.Media.Imaging;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using Microsoft.Toolkit.Uwp.Notifications;
 
 namespace SkyCast
 {
@@ -20,12 +21,23 @@ namespace SkyCast
         private bool _isMetric = true;
         private List<string> _favorites = new List<string>();
         private string _favFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "favorites.json");
+        private bool _isFirstLoad = true; 
 
         public MainWindow()
         {
             InitializeComponent();
             LoadFavorites();
             GetWeatherData(_lastCity);
+        }
+
+        
+        private void ShowWeatherAlert(string title, string message)
+        {
+            
+            new ToastContentBuilder()
+                .AddText(title)
+                .AddText(message)
+                .Show();
         }
 
         private void LoadFavorites()
@@ -81,14 +93,21 @@ namespace SkyCast
                         string condition = data["weather"][0]["main"].ToString();
                         string iconCode = data["weather"][0]["icon"].ToString();
                         string bg = iconCode.Contains("n") ? "/Images/night.jpg" : GetBgByCondition(condition);
+                        string temp = $"{(int)Convert.ToDouble(data["main"]["temp"])}°";
 
                         favDataList.Add(new FavoriteCityModel
                         {
                             CityName = data["name"].ToString(),
-                            Temperature = $"{(int)Convert.ToDouble(data["main"]["temp"])}°",
+                            Temperature = temp,
                             Status = condition,
                             BackgroundPath = bg
                         });
+
+                        
+                        if (condition.Contains("Rain") || condition.Contains("Snow") || condition.Contains("Thunderstorm"))
+                        {
+                            ShowWeatherAlert("⚠️ Hava Uyarısı", $"{city} şu an {condition} ({temp}). Dikkatli olun!");
+                        }
                     }
                     catch { }
                 }
@@ -123,6 +142,8 @@ namespace SkyCast
         private void btnRefresh_Click(object sender, RoutedEventArgs e)
         {
             GetWeatherData(_lastCity);
+            
+            ShowWeatherAlert("Güncellendi", $"{_lastCity} için veriler yenilendi.");
         }
 
         private void UnitToggle_Click(object sender, RoutedEventArgs e)
@@ -143,6 +164,8 @@ namespace SkyCast
             {
                 _favorites.Add(cleanCityName);
                 txtStar.Text = "★";
+                
+                ShowWeatherAlert("Favorilere Eklendi", $"{cleanCityName} takip listenize alındı.");
             }
             SaveFavorites();
         }
@@ -183,7 +206,8 @@ namespace SkyCast
 
                     var firstItem = data["list"][0];
                     double rawTemp = Convert.ToDouble(firstItem["main"]["temp"]);
-                    txtTemperature.Text = $"{(int)rawTemp}{tempUnit}";
+                    string currentTemp = $"{(int)rawTemp}{tempUnit}";
+                    txtTemperature.Text = currentTemp;
 
                     string weatherCondition = firstItem["weather"][0]["main"].ToString();
                     string iconCode = firstItem["weather"][0]["icon"].ToString();
@@ -228,6 +252,13 @@ namespace SkyCast
                         });
                     }
                     listDaysForecast.ItemsSource = dailyList;
+
+                    
+                    if (_isFirstLoad)
+                    {
+                        ShowWeatherAlert("Günlük Özet", $"{nameOnly}: Bugün hava {weatherCondition}, sıcaklık {currentTemp}.");
+                        _isFirstLoad = false;
+                    }
                 }
             }
             catch (Exception ex) { MessageBox.Show("Hata: " + ex.Message); }
