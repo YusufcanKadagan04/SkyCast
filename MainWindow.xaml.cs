@@ -1,11 +1,15 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net.Http;
+using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media.Imaging;
-using Newtonsoft.Json.Linq;
 
 namespace SkyCast
 {
@@ -14,11 +18,37 @@ namespace SkyCast
         private const string API_KEY = ApiConfig.API_KEY;
         private string _lastCity = "Istanbul";
         private bool _isMetric = true;
+        private List<string> _favorites = new List<string>();
+        private string _favFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "favorites.json");
 
         public MainWindow()
         {
             InitializeComponent();
+            LoadFavorites();
             GetWeatherData(_lastCity);
+        }
+
+        private void LoadFavorites()
+        {
+            if (File.Exists(_favFile))
+            {
+                try
+                {
+                    string json = File.ReadAllText(_favFile);
+                    _favorites = JsonConvert.DeserializeObject<List<string>>(json) ?? new List<string>();
+                }
+                catch { _favorites = new List<string>(); }
+            }
+        }
+
+        private void SaveFavorites()
+        {
+            try
+            {
+                string json = JsonConvert.SerializeObject(_favorites);
+                File.WriteAllText(_favFile, json);
+            }
+            catch (Exception ex) { MessageBox.Show("Kaydetme hatası: " + ex.Message); }
         }
 
         private void BtnWeather_MouseDown(object sender, MouseButtonEventArgs e)
@@ -27,10 +57,54 @@ namespace SkyCast
             CitiesView.Visibility = Visibility.Collapsed;
         }
 
-        private void BtnCities_MouseDown(object sender, MouseButtonEventArgs e)
+        private async void BtnCities_MouseDown(object sender, MouseButtonEventArgs e)
         {
             WeatherView.Visibility = Visibility.Collapsed;
             CitiesView.Visibility = Visibility.Visible;
+            await UpdateFavoritesView();
+        }
+
+        private async Task UpdateFavoritesView()
+        {
+            var favDataList = new List<FavoriteCityModel>();
+            using (HttpClient client = new HttpClient())
+            {
+                foreach (var city in _favorites)
+                {
+                    try
+                    {
+                        string units = _isMetric ? "metric" : "imperial";
+                        string url = $"https://api.openweathermap.org/data/2.5/weather?q={city}&units={units}&appid={API_KEY}";
+                        string response = await client.GetStringAsync(url);
+                        var data = JObject.Parse(response);
+
+                        string condition = data["weather"][0]["main"].ToString();
+                        string iconCode = data["weather"][0]["icon"].ToString();
+                        string bg = iconCode.Contains("n") ? "/Images/night.jpg" : GetBgByCondition(condition);
+
+                        favDataList.Add(new FavoriteCityModel
+                        {
+                            CityName = data["name"].ToString(),
+                            Temperature = $"{(int)Convert.ToDouble(data["main"]["temp"])}°",
+                            Status = condition,
+                            BackgroundPath = bg
+                        });
+                    }
+                    catch { }
+                }
+            }
+            listFavorites.ItemsSource = favDataList;
+        }
+
+        private string GetBgByCondition(string cond)
+        {
+            switch (cond)
+            {
+                case "Clouds": case "Mist": case "Fog": return "/Images/cloudy.jpg";
+                case "Rain": case "Drizzle": case "Thunderstorm": return "/Images/rainy.jpg";
+                case "Snow": return "/Images/snow.png";
+                default: return "/Images/sunny.jpg";
+            }
         }
 
         private void txtSearch_KeyDown(object sender, KeyEventArgs e)
@@ -57,6 +131,35 @@ namespace SkyCast
             GetWeatherData(_lastCity);
         }
 
+        private void btnFavorite_Click(object sender, RoutedEventArgs e)
+        {
+            string cleanCityName = txtCity.Text.Split(',')[0].Trim();
+            if (_favorites.Contains(cleanCityName))
+            {
+                _favorites.Remove(cleanCityName);
+                txtStar.Text = "☆";
+            }
+            else
+            {
+                _favorites.Add(cleanCityName);
+                txtStar.Text = "★";
+            }
+            SaveFavorites();
+        }
+
+        private async void btnRemoveFavorite_Click(object sender, RoutedEventArgs e)
+        {
+            var cityName = (sender as Button)?.Tag.ToString();
+            if (cityName != null)
+            {
+                _favorites.Remove(cityName);
+                SaveFavorites();
+                await UpdateFavoritesView();
+                string currentClean = txtCity.Text.Split(',')[0].Trim();
+                if (currentClean == cityName) txtStar.Text = "☆";
+            }
+        }
+
         private async void GetWeatherData(string cityName)
         {
             _lastCity = cityName;
@@ -73,8 +176,10 @@ namespace SkyCast
                     string tempUnit = _isMetric ? "°C" : "°F";
                     string speedUnit = _isMetric ? "km/h" : "mph";
 
-                    txtCity.Text = $"{data["city"]["name"]}, {data["city"]["country"]}";
+                    string nameOnly = data["city"]["name"].ToString();
+                    txtCity.Text = $"{nameOnly}, {data["city"]["country"]}";
                     txtDate.Text = DateTime.Now.ToString("dd MMMM yyyy dddd");
+                    txtStar.Text = _favorites.Contains(nameOnly) ? "★" : "☆";
 
                     var firstItem = data["list"][0];
                     double rawTemp = Convert.ToDouble(firstItem["main"]["temp"]);
@@ -89,8 +194,7 @@ namespace SkyCast
                     txtRealFeel.Text = $"{(int)Convert.ToDouble(firstItem["main"]["feels_like"])}°";
                     txtUVIndex.Text = "Low";
 
-                    string iconPath = GetIconPath(weatherCondition);
-                    imgMainWeather.Source = new BitmapImage(new Uri(iconPath, UriKind.Relative));
+                    imgMainWeather.Source = new BitmapImage(new Uri(GetIconPath(weatherCondition), UriKind.Relative));
 
                     var hourlyList = new List<HourlyForecastModel>();
                     for (int i = 0; i < 8; i++)
@@ -126,10 +230,7 @@ namespace SkyCast
                     listDaysForecast.ItemsSource = dailyList;
                 }
             }
-            catch (Exception ex)
-            {
-                MessageBox.Show("Veri yüklenirken hata oluştu: " + ex.Message);
-            }
+            catch (Exception ex) { MessageBox.Show("Hata: " + ex.Message); }
         }
 
         private string GetIconPath(string condition)
@@ -155,12 +256,18 @@ namespace SkyCast
                         case "Snow": imgName = "snowy.jpg"; break;
                     }
                 }
-
-                string packUri = $"pack://application:,,,/Images/{imgName}";
-                bgImage.ImageSource = new BitmapImage(new Uri(packUri));
+                bgImage.ImageSource = new BitmapImage(new Uri($"pack://application:,,,/Images/{imgName}"));
             }
-            catch (Exception) { }
+            catch { }
         }
+    }
+
+    public class FavoriteCityModel
+    {
+        public string CityName { get; set; }
+        public string Temperature { get; set; }
+        public string Status { get; set; }
+        public string BackgroundPath { get; set; }
     }
 
     public class HourlyForecastModel
