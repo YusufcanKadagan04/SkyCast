@@ -11,47 +11,44 @@ using System.Windows.Media.Imaging;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Microsoft.Toolkit.Uwp.Notifications;
-// Grafik Kütüphaneleri
 using LiveCharts;
 using LiveCharts.Wpf;
 using System.ComponentModel;
 
 namespace SkyCast
 {
-    // INotifyPropertyChanged ekledik ki grafik güncellensin
+    public class AppSettings
+    {
+        public string DefaultCity { get; set; } = "Istanbul";
+        public bool IsMetric { get; set; } = true;
+    }
+
     public partial class MainWindow : Window, INotifyPropertyChanged
     {
         private const string API_KEY = ApiConfig.API_KEY;
-        private string _lastCity = "Istanbul";
-        private bool _isMetric = true;
-        private List<string> _favorites = new List<string>();
 
-        // AppData klasörüne güvenli kayıt
+        private AppSettings _settings = new AppSettings();
+        private string _settingsFile = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "SkyCast_Config.json");
+
+        private string _lastCity; 
+        private bool _isMetric;   
+
+        private List<string> _favorites = new List<string>();
         private string _favFile = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "SkyCast_Favorites.json");
 
         private bool _isFirstLoad = true;
 
-        // --- GRAFİK İÇİN GEREKLİ PROPERTİLER ---
         private SeriesCollection _hourlySeries;
         public SeriesCollection HourlySeries
         {
             get { return _hourlySeries; }
-            set
-            {
-                _hourlySeries = value;
-                OnPropertyChanged("HourlySeries");
-            }
+            set { _hourlySeries = value; OnPropertyChanged("HourlySeries"); }
         }
-
         private string[] _hourlyLabels;
         public string[] HourlyLabels
         {
             get { return _hourlyLabels; }
-            set
-            {
-                _hourlyLabels = value;
-                OnPropertyChanged("HourlyLabels");
-            }
+            set { _hourlyLabels = value; OnPropertyChanged("HourlyLabels"); }
         }
 
         public event PropertyChangedEventHandler PropertyChanged;
@@ -59,25 +56,86 @@ namespace SkyCast
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
         }
-        // ---------------------------------------
 
         public MainWindow()
         {
             InitializeComponent();
-
-            // Binding için DataContext'i kendisi yapıyoruz
             DataContext = this;
 
-            LoadFavorites();
+            LoadSettings();  
+            LoadFavorites(); 
+
+            _lastCity = _settings.DefaultCity;
+            _isMetric = _settings.IsMetric;
+
+            txtDefaultCity.Text = _settings.DefaultCity;
+            if (_settings.IsMetric) rbMetric.IsChecked = true; else rbImperial.IsChecked = true;
+            unitToggle.IsChecked = !_settings.IsMetric;
+
             GetWeatherData(_lastCity);
+        }
+
+        private void LoadSettings()
+        {
+            if (File.Exists(_settingsFile))
+            {
+                try
+                {
+                    string json = File.ReadAllText(_settingsFile);
+                    _settings = JsonConvert.DeserializeObject<AppSettings>(json) ?? new AppSettings();
+                }
+                catch { _settings = new AppSettings(); }
+            }
+        }
+
+        private void SaveSettings()
+        {
+            try
+            {
+                string json = JsonConvert.SerializeObject(_settings);
+                File.WriteAllText(_settingsFile, json);
+            }
+            catch (Exception ex) { MessageBox.Show("Ayarlar kaydedilemedi: " + ex.Message); }
+        }
+
+        private void BtnSettings_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            WeatherView.Visibility = Visibility.Collapsed;
+            CitiesView.Visibility = Visibility.Collapsed;
+            SettingsView.Visibility = Visibility.Visible;
+
+        }
+
+        private void BtnSaveSettings_Click(object sender, RoutedEventArgs e)
+        {
+            _settings.DefaultCity = txtDefaultCity.Text.Trim();
+            if (string.IsNullOrEmpty(_settings.DefaultCity)) _settings.DefaultCity = "Istanbul";
+
+            _settings.IsMetric = rbMetric.IsChecked == true;
+
+            SaveSettings();
+
+            _isMetric = _settings.IsMetric;
+            unitToggle.IsChecked = !_settings.IsMetric;
+
+            ShowWeatherAlert("Settings Saved", "Preferences updated successfully.");
+
+            if (_lastCity != _settings.DefaultCity)
+            {
+                GetWeatherData(_settings.DefaultCity);
+            }
+            else
+            {
+                GetWeatherData(_lastCity);
+            }
+
+            SettingsView.Visibility = Visibility.Collapsed;
+            WeatherView.Visibility = Visibility.Visible;
         }
 
         private void ShowWeatherAlert(string title, string message)
         {
-            new ToastContentBuilder()
-                .AddText(title)
-                .AddText(message)
-                .Show();
+            new ToastContentBuilder().AddText(title).AddText(message).Show();
         }
 
         private void LoadFavorites()
@@ -107,12 +165,14 @@ namespace SkyCast
         {
             WeatherView.Visibility = Visibility.Visible;
             CitiesView.Visibility = Visibility.Collapsed;
+            SettingsView.Visibility = Visibility.Collapsed;
         }
 
         private async void BtnCities_MouseDown(object sender, MouseButtonEventArgs e)
         {
             WeatherView.Visibility = Visibility.Collapsed;
             CitiesView.Visibility = Visibility.Visible;
+            SettingsView.Visibility = Visibility.Collapsed;
             await UpdateFavoritesView();
         }
 
@@ -182,6 +242,7 @@ namespace SkyCast
         private void UnitToggle_Click(object sender, RoutedEventArgs e)
         {
             _isMetric = !(unitToggle.IsChecked ?? false);
+
             GetWeatherData(_lastCity);
         }
 
@@ -252,21 +313,17 @@ namespace SkyCast
 
                     imgMainWeather.Source = new BitmapImage(new Uri(GetIconPath(weatherCondition), UriKind.Relative));
 
-                    // --- YENİ GRAFİK VERİSİ HAZIRLAMA ---
+                    
                     var tempValues = new ChartValues<double>();
                     var timeLabels = new List<string>();
-
                     for (int i = 0; i < 8; i++)
                     {
                         var item = data["list"][i];
                         double t = Convert.ToDouble(item["main"]["temp"]);
                         tempValues.Add(t);
-
                         string time = item["dt_txt"].ToString().Split(' ')[1].Substring(0, 5);
                         timeLabels.Add(time);
                     }
-
-                    // Grafiği Oluştur
                     HourlySeries = new SeriesCollection
                     {
                         new LineSeries
@@ -281,7 +338,7 @@ namespace SkyCast
                         }
                     };
                     HourlyLabels = timeLabels.ToArray();
-                    // -------------------------------------
+                    
 
                     var dailyList = new List<DailyForecastModel>();
                     var groups = data["list"]
