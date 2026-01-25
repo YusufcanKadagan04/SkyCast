@@ -14,6 +14,8 @@ using Microsoft.Toolkit.Uwp.Notifications;
 using LiveCharts;
 using LiveCharts.Wpf;
 using System.ComponentModel;
+using System.Windows.Controls.Primitives;
+using System.Windows.Media;
 
 namespace SkyCast
 {
@@ -29,13 +31,11 @@ namespace SkyCast
 
         private AppSettings _settings = new AppSettings();
         private string _settingsFile = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "SkyCast_Config.json");
-
-        private string _lastCity; 
-        private bool _isMetric;   
-
-        private List<string> _favorites = new List<string>();
         private string _favFile = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "SkyCast_Favorites.json");
 
+        private string _lastCity;
+        private bool _isMetric;
+        private List<string> _favorites = new List<string>();
         private bool _isFirstLoad = true;
 
         private SeriesCollection _hourlySeries;
@@ -44,6 +44,7 @@ namespace SkyCast
             get { return _hourlySeries; }
             set { _hourlySeries = value; OnPropertyChanged("HourlySeries"); }
         }
+
         private string[] _hourlyLabels;
         public string[] HourlyLabels
         {
@@ -62,8 +63,8 @@ namespace SkyCast
             InitializeComponent();
             DataContext = this;
 
-            LoadSettings();  
-            LoadFavorites(); 
+            LoadSettings();
+            LoadFavorites();
 
             _lastCity = _settings.DefaultCity;
             _isMetric = _settings.IsMetric;
@@ -73,6 +74,159 @@ namespace SkyCast
             unitToggle.IsChecked = !_settings.IsMetric;
 
             GetWeatherData(_lastCity);
+        }
+
+        private void UpdateNavColors(string activePage)
+        {
+            var grayBrush = new SolidColorBrush(Color.FromRgb(128, 128, 128));
+            var whiteBrush = Brushes.White;
+
+            txtNavHome.Foreground = grayBrush;
+            imgNavHome.Opacity = 0.5;
+
+            txtNavCities.Foreground = grayBrush;
+            imgNavCities.Opacity = 0.5;
+
+            txtNavSettings.Foreground = grayBrush;
+            txtNavSettingsIcon.Foreground = grayBrush;
+
+            if (activePage == "Home")
+            {
+                txtNavHome.Foreground = whiteBrush;
+                imgNavHome.Opacity = 1.0;
+            }
+            else if (activePage == "Cities")
+            {
+                txtNavCities.Foreground = whiteBrush;
+                imgNavCities.Opacity = 1.0;
+            }
+            else if (activePage == "Settings")
+            {
+                txtNavSettings.Foreground = whiteBrush;
+                txtNavSettingsIcon.Foreground = whiteBrush;
+            }
+        }
+
+        private void txtCitiesSearch_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter)
+            {
+                string query = txtCitiesSearch.Text.Trim();
+                if (!string.IsNullOrEmpty(query))
+                {
+                    GetWeatherData(query);
+                    txtCitiesSearch.Text = "";
+
+                    CitiesView.Visibility = Visibility.Collapsed;
+                    SettingsView.Visibility = Visibility.Collapsed;
+                    WeatherView.Visibility = Visibility.Visible;
+
+                    UpdateNavColors("Home");
+                }
+            }
+        }
+
+        private void BtnSaveSettings_Click(object sender, RoutedEventArgs e)
+        {
+            _settings.DefaultCity = txtDefaultCity.Text.Trim();
+            if (string.IsNullOrEmpty(_settings.DefaultCity)) _settings.DefaultCity = "Istanbul";
+            _settings.IsMetric = rbMetric.IsChecked == true;
+
+            SaveSettings();
+
+            _isMetric = _settings.IsMetric;
+            unitToggle.IsChecked = !_settings.IsMetric;
+
+            ShowWeatherAlert("Settings Saved", "Preferences updated.");
+
+            if (_lastCity != _settings.DefaultCity) GetWeatherData(_settings.DefaultCity);
+            else GetWeatherData(_lastCity);
+
+            SettingsView.Visibility = Visibility.Collapsed;
+            WeatherView.Visibility = Visibility.Visible;
+
+            UpdateNavColors("Home");
+        }
+
+        private void BtnWeather_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            WeatherView.Visibility = Visibility.Visible;
+            CitiesView.Visibility = Visibility.Collapsed;
+            SettingsView.Visibility = Visibility.Collapsed;
+            UpdateNavColors("Home");
+        }
+
+        private async void BtnCities_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            WeatherView.Visibility = Visibility.Collapsed;
+            CitiesView.Visibility = Visibility.Visible;
+            SettingsView.Visibility = Visibility.Collapsed;
+            UpdateNavColors("Cities");
+            await UpdateFavoritesView();
+        }
+
+        private void BtnSettings_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            WeatherView.Visibility = Visibility.Collapsed;
+            CitiesView.Visibility = Visibility.Collapsed;
+            SettingsView.Visibility = Visibility.Visible;
+            UpdateNavColors("Settings");
+        }
+
+        private void txtSearch_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter)
+            {
+                string query = txtSearch.Text.Trim();
+                if (!string.IsNullOrEmpty(query))
+                {
+                    GetWeatherData(query);
+                    txtSearch.Text = "";
+                }
+            }
+        }
+
+        private void btnRefresh_Click(object sender, RoutedEventArgs e)
+        {
+            GetWeatherData(_lastCity);
+            ShowWeatherAlert("Updated", $"{_lastCity} weather data refreshed.");
+        }
+
+        private void UnitToggle_Click(object sender, RoutedEventArgs e)
+        {
+            _isMetric = !(unitToggle.IsChecked ?? false);
+            GetWeatherData(_lastCity);
+        }
+
+        private void btnFavorite_Click(object sender, RoutedEventArgs e)
+        {
+            string cleanCityName = txtCity.Text.Split(',')[0].Trim();
+            if (_favorites.Contains(cleanCityName))
+            {
+                _favorites.Remove(cleanCityName);
+                txtStar.Text = "☆";
+            }
+            else
+            {
+                _favorites.Add(cleanCityName);
+                txtStar.Text = "★";
+                ShowWeatherAlert("Added", $"{cleanCityName} added to favorites.");
+            }
+            SaveFavorites();
+        }
+
+        private async void btnRemoveFavorite_Click(object sender, RoutedEventArgs e)
+        {
+            var cityName = (sender as Button)?.Tag.ToString();
+            if (cityName != null)
+            {
+                _favorites.Remove(cityName);
+                SaveFavorites();
+                await UpdateFavoritesView();
+
+                string currentClean = txtCity.Text.Split(',')[0].Trim();
+                if (currentClean == cityName) txtStar.Text = "☆";
+            }
         }
 
         private void LoadSettings()
@@ -95,47 +249,7 @@ namespace SkyCast
                 string json = JsonConvert.SerializeObject(_settings);
                 File.WriteAllText(_settingsFile, json);
             }
-            catch (Exception ex) { MessageBox.Show("Ayarlar kaydedilemedi: " + ex.Message); }
-        }
-
-        private void BtnSettings_MouseDown(object sender, MouseButtonEventArgs e)
-        {
-            WeatherView.Visibility = Visibility.Collapsed;
-            CitiesView.Visibility = Visibility.Collapsed;
-            SettingsView.Visibility = Visibility.Visible;
-
-        }
-
-        private void BtnSaveSettings_Click(object sender, RoutedEventArgs e)
-        {
-            _settings.DefaultCity = txtDefaultCity.Text.Trim();
-            if (string.IsNullOrEmpty(_settings.DefaultCity)) _settings.DefaultCity = "Istanbul";
-
-            _settings.IsMetric = rbMetric.IsChecked == true;
-
-            SaveSettings();
-
-            _isMetric = _settings.IsMetric;
-            unitToggle.IsChecked = !_settings.IsMetric;
-
-            ShowWeatherAlert("Settings Saved", "Preferences updated successfully.");
-
-            if (_lastCity != _settings.DefaultCity)
-            {
-                GetWeatherData(_settings.DefaultCity);
-            }
-            else
-            {
-                GetWeatherData(_lastCity);
-            }
-
-            SettingsView.Visibility = Visibility.Collapsed;
-            WeatherView.Visibility = Visibility.Visible;
-        }
-
-        private void ShowWeatherAlert(string title, string message)
-        {
-            new ToastContentBuilder().AddText(title).AddText(message).Show();
+            catch (Exception ex) { MessageBox.Show("Hata: " + ex.Message); }
         }
 
         private void LoadFavorites()
@@ -158,122 +272,12 @@ namespace SkyCast
                 string json = JsonConvert.SerializeObject(_favorites);
                 File.WriteAllText(_favFile, json);
             }
-            catch (Exception ex) { MessageBox.Show("Kaydetme hatası: " + ex.Message); }
+            catch (Exception ex) { MessageBox.Show("Hata: " + ex.Message); }
         }
 
-        private void BtnWeather_MouseDown(object sender, MouseButtonEventArgs e)
+        private void ShowWeatherAlert(string title, string message)
         {
-            WeatherView.Visibility = Visibility.Visible;
-            CitiesView.Visibility = Visibility.Collapsed;
-            SettingsView.Visibility = Visibility.Collapsed;
-        }
-
-        private async void BtnCities_MouseDown(object sender, MouseButtonEventArgs e)
-        {
-            WeatherView.Visibility = Visibility.Collapsed;
-            CitiesView.Visibility = Visibility.Visible;
-            SettingsView.Visibility = Visibility.Collapsed;
-            await UpdateFavoritesView();
-        }
-
-        private async Task UpdateFavoritesView()
-        {
-            var favDataList = new List<FavoriteCityModel>();
-            using (HttpClient client = new HttpClient())
-            {
-                foreach (var city in _favorites)
-                {
-                    try
-                    {
-                        string units = _isMetric ? "metric" : "imperial";
-                        string url = $"https://api.openweathermap.org/data/2.5/weather?q={city}&units={units}&appid={API_KEY}";
-                        string response = await client.GetStringAsync(url);
-                        var data = JObject.Parse(response);
-
-                        string condition = data["weather"][0]["main"].ToString();
-                        string iconCode = data["weather"][0]["icon"].ToString();
-                        string bg = iconCode.Contains("n") ? "/Images/night.jpg" : GetBgByCondition(condition);
-                        string temp = $"{(int)Convert.ToDouble(data["main"]["temp"])}°";
-
-                        favDataList.Add(new FavoriteCityModel
-                        {
-                            CityName = data["name"].ToString(),
-                            Temperature = temp,
-                            Status = condition,
-                            BackgroundPath = bg
-                        });
-                    }
-                    catch { }
-                }
-            }
-            listFavorites.ItemsSource = favDataList;
-        }
-
-        private string GetBgByCondition(string cond)
-        {
-            switch (cond)
-            {
-                case "Clouds": case "Mist": case "Fog": return "/Images/cloudy.jpg";
-                case "Rain": case "Drizzle": case "Thunderstorm": return "/Images/rainy.jpg";
-                case "Snow": return "/Images/snow.png";
-                default: return "/Images/sunny.jpg";
-            }
-        }
-
-        private void txtSearch_KeyDown(object sender, KeyEventArgs e)
-        {
-            if (e.Key == Key.Enter)
-            {
-                string query = txtSearch.Text.Trim();
-                if (!string.IsNullOrEmpty(query))
-                {
-                    GetWeatherData(query);
-                    txtSearch.Text = "";
-                }
-            }
-        }
-
-        private void btnRefresh_Click(object sender, RoutedEventArgs e)
-        {
-            GetWeatherData(_lastCity);
-            ShowWeatherAlert("Güncellendi", $"{_lastCity} verileri yenilendi.");
-        }
-
-        private void UnitToggle_Click(object sender, RoutedEventArgs e)
-        {
-            _isMetric = !(unitToggle.IsChecked ?? false);
-
-            GetWeatherData(_lastCity);
-        }
-
-        private void btnFavorite_Click(object sender, RoutedEventArgs e)
-        {
-            string cleanCityName = txtCity.Text.Split(',')[0].Trim();
-            if (_favorites.Contains(cleanCityName))
-            {
-                _favorites.Remove(cleanCityName);
-                txtStar.Text = "☆";
-            }
-            else
-            {
-                _favorites.Add(cleanCityName);
-                txtStar.Text = "★";
-                ShowWeatherAlert("Eklendi", $"{cleanCityName} favorilere alındı.");
-            }
-            SaveFavorites();
-        }
-
-        private async void btnRemoveFavorite_Click(object sender, RoutedEventArgs e)
-        {
-            var cityName = (sender as Button)?.Tag.ToString();
-            if (cityName != null)
-            {
-                _favorites.Remove(cityName);
-                SaveFavorites();
-                await UpdateFavoritesView();
-                string currentClean = txtCity.Text.Split(',')[0].Trim();
-                if (currentClean == cityName) txtStar.Text = "☆";
-            }
+            new ToastContentBuilder().AddText(title).AddText(message).Show();
         }
 
         private async void GetWeatherData(string cityName)
@@ -313,7 +317,6 @@ namespace SkyCast
 
                     imgMainWeather.Source = new BitmapImage(new Uri(GetIconPath(weatherCondition), UriKind.Relative));
 
-                    
                     var tempValues = new ChartValues<double>();
                     var timeLabels = new List<string>();
                     for (int i = 0; i < 8; i++)
@@ -324,6 +327,7 @@ namespace SkyCast
                         string time = item["dt_txt"].ToString().Split(' ')[1].Substring(0, 5);
                         timeLabels.Add(time);
                     }
+
                     HourlySeries = new SeriesCollection
                     {
                         new LineSeries
@@ -338,13 +342,11 @@ namespace SkyCast
                         }
                     };
                     HourlyLabels = timeLabels.ToArray();
-                    
 
                     var dailyList = new List<DailyForecastModel>();
                     var groups = data["list"]
                         .GroupBy(x => x["dt_txt"].ToString().Substring(0, 10))
-                        .Skip(1)
-                        .Take(7);
+                        .Take(5);
 
                     foreach (var group in groups)
                     {
@@ -362,7 +364,7 @@ namespace SkyCast
 
                     if (_isFirstLoad)
                     {
-                        ShowWeatherAlert("Günlük Özet", $"{nameOnly}: Bugün hava {weatherCondition}, {currentTemp}.");
+                        ShowWeatherAlert("Forecast", $"{nameOnly}: {weatherCondition}, {currentTemp}.");
                         _isFirstLoad = false;
                     }
                 }
@@ -370,27 +372,72 @@ namespace SkyCast
             catch (Exception ex) { MessageBox.Show("Hata: " + ex.Message); }
         }
 
+        private async Task UpdateFavoritesView()
+        {
+            var favDataList = new List<FavoriteCityModel>();
+            using (HttpClient client = new HttpClient())
+            {
+                foreach (var city in _favorites)
+                {
+                    try
+                    {
+                        string units = _isMetric ? "metric" : "imperial";
+                        string url = $"https://api.openweathermap.org/data/2.5/weather?q={city}&units={units}&appid={API_KEY}";
+                        string response = await client.GetStringAsync(url);
+                        var data = JObject.Parse(response);
+
+                        string condition = data["weather"][0]["main"].ToString();
+                        string iconCode = data["weather"][0]["icon"].ToString();
+                        string bg = iconCode.Contains("n") ? "/Images/night.jpg" : GetBgByCondition(condition);
+                        string temp = $"{(int)Convert.ToDouble(data["main"]["temp"])}°";
+
+                        favDataList.Add(new FavoriteCityModel
+                        {
+                            CityName = data["name"].ToString(),
+                            Temperature = temp,
+                            Status = condition,
+                            BackgroundPath = bg
+                        });
+                    }
+                    catch { }
+                }
+            }
+            listFavorites.ItemsSource = favDataList;
+        }
+
         private string GetIconPath(string condition)
         {
             if (condition == "Clouds" || condition == "Mist" || condition == "Fog") return "/Images/cloudy.png";
-            if (condition == "Rain" || condition == "Drizzle" || condition == "Thunderstorm") return "/Images/rain.png";
+            if (condition == "Rain" || condition == "Drizzle" || condition == "Thunderstorm") return "/Images/rainy.png";
             if (condition == "Snow") return "/Images/snow.png";
             return "/Images/sun.png";
+        }
+
+        private string GetBgByCondition(string cond)
+        {
+            switch (cond)
+            {
+                case "Clouds": case "Mist": case "Fog": return "/Images/cloudy.png";
+                case "Rain": case "Drizzle": case "Thunderstorm": return "/Images/rainy.png";
+                case "Snow": return "/Images/snowy.png";
+                default: return "/Images/sun.png";
+            }
         }
 
         private void SetDynamicBackground(string weatherCondition, string iconCode)
         {
             try
             {
-                string imgName = "sunny.jpg";
+                string imgName = "sun.png";
+
                 if (iconCode.Contains("n")) imgName = "night.jpg";
                 else
                 {
                     switch (weatherCondition)
                     {
-                        case "Clouds": case "Mist": case "Fog": imgName = "cloudy.jpg"; break;
-                        case "Rain": case "Drizzle": case "Thunderstorm": imgName = "rainy.jpg"; break;
-                        case "Snow": imgName = "snowy.jpg"; break;
+                        case "Clouds": case "Mist": case "Fog": imgName = "cloudy.png"; break;
+                        case "Rain": case "Drizzle": case "Thunderstorm": imgName = "rainy.png"; break;
+                        case "Snow": imgName = "snowy.png"; break;
                     }
                 }
                 bgImage.ImageSource = new BitmapImage(new Uri($"pack://application:,,,/Images/{imgName}"));
