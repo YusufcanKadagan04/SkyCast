@@ -76,6 +76,19 @@ namespace SkyCast
             GetWeatherData(_lastCity);
         }
 
+        private void BtnFavoriteCard_Click(object sender, MouseButtonEventArgs e)
+        {
+            var border = sender as Border;
+            if (border?.Tag is string cityName)
+            {
+                GetWeatherData(cityName);
+                WeatherView.Visibility = Visibility.Visible;
+                CitiesView.Visibility = Visibility.Collapsed;
+                SettingsView.Visibility = Visibility.Collapsed;
+                UpdateNavColors("Home");
+            }
+        }
+
         private void UpdateNavColors(string activePage)
         {
             var grayBrush = new SolidColorBrush(Color.FromRgb(128, 128, 128));
