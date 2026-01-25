@@ -298,7 +298,10 @@
                                             </ItemsControl.ItemsPanel>
                                             <ItemsControl.ItemTemplate>
                                                 <DataTemplate>
-                                                    <Border Width="230" Height="110" CornerRadius="20" Margin="10">
+                                                    <Border Width="230" Height="110" CornerRadius="20" Margin="10" 
+                                                            Cursor="Hand"
+                                                            MouseLeftButtonDown="BtnFavoriteCard_Click"
+                                                            Tag="{Binding CityName}">
                                                         <Border.Background>
                                                             <ImageBrush ImageSource="{Binding BackgroundPath}" Stretch="UniformToFill"/>
                                                         </Border.Background>
