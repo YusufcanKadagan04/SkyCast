@@ -430,7 +430,12 @@ namespace SkyCast
             if (condition == "Snow") return "/Images/snow.png";
             return "/Images/sun.png";
         }
-
+        private void BtnUserIcon_Click(object sender, MouseButtonEventArgs e)
+        {
+            AuthenticationView authView = new AuthenticationView();
+            authView.Owner = this; 
+            authView.ShowDialog();
+        }
         private string GetBgByCondition(string cond)
         {
             switch (cond)

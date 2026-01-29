@@ -56,9 +56,13 @@
                             </StackPanel>
                         </StackPanel>
 
-                        <Grid Grid.Row="1" Margin="0,0,0,30">
+                        <StackPanel Grid.Row="1" Margin="0,0,0,30" 
+                                    Cursor="Hand" 
+                                    MouseLeftButtonDown="BtnUserIcon_Click" 
+                                    Background="Transparent">
                             <Image Source="/Images/user.png" Width="35" HorizontalAlignment="Center" RenderOptions.BitmapScalingMode="HighQuality"/>
-                        </Grid>
+                            <TextBlock Text="Login" FontSize="10" Foreground="Gray" HorizontalAlignment="Center" Margin="0,5,0,0"/>
+                        </StackPanel>
                     </Grid>
                 </Border>
 
