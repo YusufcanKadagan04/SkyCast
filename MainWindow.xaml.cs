@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using SkyCast.Data;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
@@ -61,6 +62,10 @@ namespace SkyCast
         public MainWindow()
         {
             InitializeComponent();
+            using (var context = new AppDbContext())
+            {
+                context.Database.EnsureCreated();
+            }
             DataContext = this;
 
             LoadSettings();
