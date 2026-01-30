@@ -433,8 +433,14 @@ namespace SkyCast
         private void BtnUserIcon_Click(object sender, MouseButtonEventArgs e)
         {
             AuthenticationView authView = new AuthenticationView();
-            authView.Owner = this; 
-            authView.ShowDialog();
+            authView.Owner = this;
+            if (authView.ShowDialog() == true)
+            {
+                if (AppSession.IsLoggedIn)
+                {
+                    txtLoginStatus.Text = AppSession.CurrentUser.Username;
+                }
+            }
         }
         private string GetBgByCondition(string cond)
         {
