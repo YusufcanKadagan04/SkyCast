@@ -1,12 +1,12 @@
-# 🌤️ SkyCast: Modern Weather Visualization System
+#  SkyCast: Modern Weather Visualization System
 
 SkyCast is a high-performance desktop application built with **.NET 8** and **WPF**, designed to provide real-time weather data with a focus on interactive data visualization and secure user management.
 
-![MainPage]("C:\Users\yusuf\Documents\GitHub\SkyCast\SkyCast\Screenshots\MainPage.png")
+<img src="https://github.com/YusufcanKadagan04/SkyCast/blob/ft_Sprint3/Screenshots/MainPage.png"/>
 
 ---
 
-## 🚀 Core Features
+##  Core Features
 
 * **Real-Time Data Integration:** Fetches global weather data using the **OpenWeatherMap REST API**.
 * **Hybrid Persistence Architecture:** * **Guest Mode:** Uses JSON-based local storage for session preferences.
@@ -18,7 +18,7 @@ SkyCast is a high-performance desktop application built with **.NET 8** and **WP
 
 ---
 
-## 🛠️ Tech Stack
+##  Tech Stack
 
 * **Language:** C#
 * **Framework:** .NET 8 (WPF)
@@ -30,15 +30,15 @@ SkyCast is a high-performance desktop application built with **.NET 8** and **WP
 
 ---
 
-## 📸 Screenshots
+##  Screenshots
 
-| Home Screen | Interactive Charts | User Management |
+| Home Screen | Cities Screen | Settings Screen |
 | :---: | :---: | :---: |
-| ![Home][SCREENSHOT_1] | ![Charts][SCREENSHOT_2] | ![Auth][SCREENSHOT_3] |
+| <img src="https://github.com/YusufcanKadagan04/SkyCast/blob/ft_Sprint3/Screenshots/MainPage.png"/> | <img src="https://github.com/YusufcanKadagan04/SkyCast/blob/ft_Sprint3/Screenshots/CitiesPage.png"/> | <img src="https://github.com/YusufcanKadagan04/SkyCast/blob/ft_Sprint3/Screenshots/SettingsPage.png"/> |
 
 ---
 
-## 📦 Installation & Setup
+##  Installation & Setup
 
 1.  **Clone the repository:**
     ```bash
@@ -60,7 +60,7 @@ SkyCast is a high-performance desktop application built with **.NET 8** and **WP
 
 ---
 
-## 🧠 Technical Challenges & Learnings
+## Technical Challenges & Learnings
 
 * **Migrating from JSON to SQLite:** Transitioned from a simple file-based system to a relational database model to support multi-user isolation.
 * **UI Thread Management:** Handled asynchronous API calls to ensure the interface remains responsive during data fetching.
@@ -68,12 +68,11 @@ SkyCast is a high-performance desktop application built with **.NET 8** and **WP
 
 ---
 
-## 👤 Author
+## Author
 
 **Yusufcan Kadagan**
-* 📍 Information Systems and Technologies Student @ Atatürk University
-* 💼 Sales and Operations Manager @ MKD
-* 🔗 [LinkedIn](https://linkedin.com/in/yusufcankadagan) | [GitHub](https://github.com/yusufcankadagan)
+*  Information Systems and Technologies Student @ Atatürk University
+*  [LinkedIn](https://www.linkedin.com/in/yusufcan-kada%C4%9Fan-680b7a287/) | [GitHub](https://github.com/YusufcanKadagan04)
 
 ---
 *This project was developed as a showcase of C# desktop development and modern software architecture principles.*
